@@ -1,0 +1,64 @@
+name: Terraform PR
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "**/*.tf"
+      - ".terraform.lock.hcl"
+      - ".github/workflows/terraform-pr.yml"
+
+jobs:
+  validate-and-plan:
+    runs-on: ubuntu-latest
+
+    env:
+      TF_IN_AUTOMATION: true
+      TF_INPUT: false
+      AWS_REGION: us-east-1
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: latest
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive
+
+      - name: Terraform init
+        run: terraform init -input=false
+
+      - name: Terraform validate
+        run: terraform validate
+
+      - name: Terraform plan
+        run: terraform plan -input=false -no-color
+
+      - name: Slack notification
+        if: always() && env.SLACK_WEBHOOK_URL != ''
+        env:
+          JOB_STATUS: ${{ job.status }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          if [ "$JOB_STATUS" = "success" ]; then
+            MESSAGE="Terraform PR checks passed for PR #${PR_NUMBER}: ${PR_URL}"
+          else
+            MESSAGE="Terraform PR checks failed for PR #${PR_NUMBER}: ${PR_URL}"
+          fi
+
+          PAYLOAD=$(jq -n --arg text "$MESSAGE" '{text: $text}')
+          curl -sS -X POST -H 'Content-type: application/json' --data "$PAYLOAD" "$SLACK_WEBHOOK_URL"

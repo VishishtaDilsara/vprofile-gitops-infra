@@ -4,6 +4,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    tls = {
+      source  = "hashicorp/tls"
+      version = "~> 4.0"
+    }
   }
 }
 
@@ -55,8 +59,8 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name                                     = "${var.cluster_name}-public-${count.index + 1}"
-    "kubernetes.io/role/elb"                 = "1"
+    Name                                        = "${var.cluster_name}-public-${count.index + 1}"
+    "kubernetes.io/role/elb"                    = "1"
     "kubernetes.io/cluster/${var.cluster_name}" = "owned"
   }
 }
@@ -209,7 +213,7 @@ resource "aws_eks_addon" "ebs_csi_driver" {
   service_account_role_arn = aws_iam_role.ebs_csi_driver.arn
 
   depends_on = [
-  aws_eks_node_group.main,
-  aws_iam_role_policy_attachment.ebs_csi_driver_policy
+    aws_eks_node_group.main,
+    aws_iam_role_policy_attachment.ebs_csi_driver_policy
   ]
 }
