@@ -22,3 +22,5 @@ Set these repository secrets before using the workflows:
 ## Notes
 
 The workflows use the S3 backend defined in `backend.tf`. If you change the AWS region, update the workflow environment variables to match.
+
+terraform commit 002
