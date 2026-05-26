@@ -8,6 +8,7 @@ on:
       - "**/*.tf"
       - ".terraform.lock.hcl"
       - ".github/workflows/terraform-pr.yml"
+      - "README.md"
 
 jobs:
   validate-and-plan:
